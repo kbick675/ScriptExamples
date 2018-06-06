@@ -43,7 +43,7 @@ function New-RandomPassword
     return $password  
 }
 
-$ServiceAccount = Get-ADUser -Identity $SamAccountName -Properties Name,Description,samAccountName,extensionAttribute15,LastLogon -ErrorAction SilentlyContinue
+$ServiceAccount = Get-ADUser -Identity $SamAccountName -Properties Name,Description,samAccountName,extensionAttribute15,LastLogonTimeStamp -ErrorAction SilentlyContinue
 if(!($ServiceAccount))
 {
     Write-Output "Account does not exist - $($SamAccountName)."
@@ -83,11 +83,11 @@ if ($ServiceAccount)
             if ($UnusedDisable)
             {
                 $ninetydays = (Get-Date).AddDays(-90)
-                $time = $ADUser.LastLogon
-                $LastLogonTime = [DateTime]::FromFileTime($time)
-                if ($LastLogonTime -le $ninetydays)
+                $time = $ADUser.LastLogonTimeStamp
+                $LastLogonTimeStamp = [DateTime]::FromFileTime($time)
+                if ($LastLogonTimeStamp -le $ninetydays)
                 {
-                    Write-Output "$($ADUser.Name) last logged on 90 or more days ago at $($LastLogonTime)."
+                    Write-Output "$($ADUser.Name) last logged on 90 or more days ago at $($LastLogonTimeStamp)."
                     Write-Output "Disabling $($ADUser.Name)."
                     try
                     {
@@ -103,9 +103,9 @@ if ($ServiceAccount)
                         Write-Output "Unable to disable $($ADUser)."
                     }
                 }
-                elseif ($LastLogonTime -gt $ninetydays)
+                elseif ($LastLogonTimeStamp -gt $ninetydays)
                 {
-                    Write-Output "$($ADUser.Name) last logged on less than 90 days ago at $($LastLogonTime) so it will not be disabled."
+                    Write-Output "$($ADUser.Name) last logged on less than 90 days ago at $($LastLogonTimeStamp) so it will not be disabled."
                 }
             }
             if ($SecurityDisable)
