@@ -6,7 +6,6 @@ $ADObject = Get-ADObject -filter {(Name -like $Name) -or (SamAccountName -like $
 $Domain = Get-ADDomain
 function Set-UserAcctUid
 {
-    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$UserAccount = $UserAccount
     )
@@ -32,7 +31,6 @@ function Set-UserAcctUid
 
 function Set-GroupAcctGid
 {
-    [CmdletBinding(SupportsShouldProcess)]
     param(
     [string]$GroupName = $GroupName
     )
