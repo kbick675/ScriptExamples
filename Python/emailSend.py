@@ -5,7 +5,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 def SendEmail(password_id, key_file):
-    #email_to = 'conjunctionjunction@spacex.com'
     email_to = 'kevin.bickmore@domain.com' 
     with open(key_file, 'r') as f:
         header = {'APIKey': f.read().strip()}
