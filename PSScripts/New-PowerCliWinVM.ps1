@@ -196,7 +196,16 @@ if ($VMTemplate)
         $VMOSCustomization = Get-OSCustomizationSpec -Name "AutomationX_Windows2016STD" #You'll probably want to specify your own OS Customization Specification
     }
 
-    New-VM -Name $VMName -Location $VMFolder -Datastore $DataStore -Template $Template -OSCustomizationSpec $VMOSCustomization -ResourcePool $VMResourcePool -Server $VIServer
+    $NewVMSplat = @{
+        Name = $VMName
+        Location = $VMFolder
+        Datastore = $VMDatastore
+        Template = $Template
+        OSCustomizationSpec = $VMOSCustomization
+        ResourcePool = $VMResourcePool
+        Server = $VIServer
+    }
+    New-VM @NewVMSplat
     Start-Sleep -Seconds 10
     $NewVM = Get-VM -Name $VMName
     if ($NewVM)
@@ -227,7 +236,17 @@ elseif (!($VMTemplate))
     {
         $GuestOS = "windows10Server64Guest"
     }
-    New-VM -Name $VMName -Location $VMFolder -Datastore $DataStore -ResourcePool $VMResourcePool -Server $VIServer -NetworkName $VMNetwork -DiskStorageFormat Thin -DiskGB $VMDiskSize
+    $NewVMSplat = @{
+        Name = $VMName
+        Location = $VMFolder
+        Datastore = $VMDatastore
+        ResourcePool = $VMResourcePool
+        Server = $VIServer
+        NetworkName = $VMNetwork
+        DiskStorageFormat = 'Thin'
+        DiskGB = $VMDiskSize
+    }
+    New-VM @NewVMSplat
     Start-Sleep -Seconds 10
     $NewVM = Get-VM -Name $VMName
     if ($NewVM)
