@@ -1,4 +1,4 @@
-Configuration ConfigureHospitalDBServer
+Configuration NewSQLInstance
 {
     [CmdletBinding()]
     param
@@ -71,7 +71,7 @@ Configuration ConfigureHospitalDBServer
             SQLCollation           = $instanceSettings.SQLCollation
             SQLSvcAccount          = $SqlServiceCredential
             AgtSvcAccount          = $SqlAgentServiceCredential
-            SQLSysAdminAccounts    = 'VCAANTECH\DBAdmins', $SqlAdministratorCredential.UserName
+            SQLSysAdminAccounts    = 'domain\DBAdmins', $SqlAdministratorCredential.UserName
             InstallSharedDir       = $instanceSettings.InstallSharedDir
             InstallSharedWOWDir    = $instanceSettings.Installshared
             InstanceDir            = $instanceSettings.InstanceDir
