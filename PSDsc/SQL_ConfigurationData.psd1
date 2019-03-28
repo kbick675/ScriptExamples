@@ -9,7 +9,7 @@
         }
         @{
             NodeName                    = "phitedb1"
-            NodeNameFQDN                = "phitedb1.vcaantech.com"
+            NodeNameFQDN                = "phitedb1.domain.com"
             Role                        = "FirstServerNode"
             InterfaceAlias              = "Ethernet0 2"
             IPAddress                   = "10.200.170.40/24"
@@ -18,7 +18,7 @@
         }
         @{
             NodeName                    = "phitedb2"
-            NodeNameFQDN                = "phitedb2.vcaantech.com"
+            NodeNameFQDN                = "phitedb2.domain.com"
             Role                        = "AdditionalServerNode"
             InterfaceAlias              = "Ethernet0 2"
             IPAddress                   = "10.200.170.41/24"
@@ -27,7 +27,7 @@
         }
         @{
             NodeName                    = 'phiters1'
-            NodeNameFQDN                = "pheiters1.vcaantech.com"
+            NodeNameFQDN                = "pheiters1.domain.com"
             Role                        = 'RS'
             InterfaceAlias              = "Ethernet0 2"
             IPAddress                   = "10.200.170.42/24"
