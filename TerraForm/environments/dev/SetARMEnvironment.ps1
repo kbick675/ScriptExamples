@@ -7,9 +7,9 @@ if ([string]::IsNullOrEmpty($(Get-AzContext).Account))
     Connect-AzAccount
 }
 
-$AzureRmResourceGroup = Get-AzResourceGroup -Name 'au10507_storage_pmsdata_lab_wu'
+$AzureRmResourceGroup = Get-AzResourceGroup -Name 'resourcegroupname'
 
-$AzureRMSubId = "8d5640f7-de61-49be-a2e4-0a081f4f0d8f"
+$AzureRMSubId = "guid"
 $KeyVaultName = "SecretVaultDev"
 
 $Vault = Get-AzKeyVault -VaultName $KeyVaultName -ResourceGroupName $AzureRmResourceGroup.ResourceGroupName
