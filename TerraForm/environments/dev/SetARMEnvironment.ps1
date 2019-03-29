@@ -1,25 +1,27 @@
 Push-Location (Split-Path $script:MyInvocation.MyCommand.Path)
 
-$ARMInfo = Get-Content .\ARMInformation.json | ConvertFrom-Json
-
 if ([string]::IsNullOrEmpty($(Get-AzContext).Account))
 {
     Connect-AzAccount
 }
 
-$AzureRmResourceGroup = Get-AzResourceGroup -Name 'resourcegroupname'
+$ARMInfo = Get-Content .\ARMInformation.json | ConvertFrom-Json
 
-$AzureRMSubId = "guid"
-$KeyVaultName = "SecretVaultDev"
+$azResourceGroup = Get-AzResourceGroup -Name $ARMInfo.resourceGroup
+$azSubscription = (Get-AzSubscription -SubscriptionName $ARMInfo.subscriptionName)
 
-$Vault = Get-AzKeyVault -VaultName $KeyVaultName -ResourceGroupName $AzureRmResourceGroup.ResourceGroupName
+Set-AzContext -SubscriptionId $azSubId
+
+$appId = (Get-AzADServicePrincipal -ServicePrincipalName $ARMInfo.spDisplayName).ApplicationId
+
+$Vault = Get-AzKeyVault -VaultName $ARMInfo.keyVaultName -ResourceGroupName $azResourceGroup.ResourceGroupName
 $Secret = Get-AzKeyVaultSecret -VaultName $Vault.VaultName -Name TerraformDev
-$AzureAutomation = Get-AzAutomationAccount -ResourceGroupName $AzureRmResourceGroup.ResourceGroupName
+$AzureAutomation = Get-AzAutomationAccount -ResourceGroupName $azResourceGroup.ResourceGroupName
 $AzureAutomationRegistration = $AzureAutomation | Get-AzAutomationRegistrationInfo
 
-$ENV:ARM_SUBSCRIPTION_ID=$AzureRMSubId
-$ENV:ARM_CLIENT_ID=$ARMInfo.appId
+$ENV:ARM_SUBSCRIPTION_ID=$azSubscription.Id
+$ENV:ARM_CLIENT_ID=$appId
 $ENV:ARM_CLIENT_SECRET=$Secret.SecretValueText
-$ENV:ARM_TENANT_ID=$ARMInfo.tenant
+$ENV:ARM_TENANT_ID=$azSubscription.TenantId
 $ENV:TF_VAR_DSC_ENDPOINT=$AzureAutomationRegistration.Endpoint
 $ENV:TF_VAR_DSC_KEY=$AzureAutomationRegistration.PrimaryKey

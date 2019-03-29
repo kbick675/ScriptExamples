@@ -1,7 +1,6 @@
 {
-    "subscriptionId": "guid",
-    "appId": "guid",
-    "displayName": "TerraformDev",
-    "name": "http://TerraformDev",
-    "tenant": "guid"
+    "resourceGroup": "resourceGroupName",
+    "keyVaultName": "SecretVaultDev",
+    "subscriptionName": "NameOfSubscription",
+    "spDisplayName": "TerraformDev"
 }
