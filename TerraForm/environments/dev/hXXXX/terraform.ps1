@@ -1,6 +1,6 @@
 # initialize with Azure backend
-terraform init -backend=true -backend-config="backend.tfvars"
+terraform init -backend=true -backend-config="./backend.tfvars"
 # plan
-terraform plan
+#terraform plan
 # apply
-terraform apply
+#terraform apply

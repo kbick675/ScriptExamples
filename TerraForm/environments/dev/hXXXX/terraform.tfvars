@@ -9,8 +9,8 @@ VmCount                     = 3 # Number of VMs
 VmSku                       = "2019-Datacenter" # 2019-Datacenter, 2019-Datacenter-Core, 2016-Datacenter, 2016-Datacenter-Server-Core # This may be a custom image in the long run.
 
 ## Static Resource Information ##
-ResourceGroup            = "General-Rg-Dev"
-KeyVaultName             = "-Secret-Vault-Dev"
+ResourceGroup               = "General-Rg-Dev"
+KeyVaultName                = "Secret-Vault-Dev"
 
 ## Networking ##
 vNetSpace                   = "10.0.0.0/16"

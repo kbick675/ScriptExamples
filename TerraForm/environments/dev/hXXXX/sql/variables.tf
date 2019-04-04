@@ -1,25 +1,9 @@
-variable "environment" {
-    type = "string"
-    # dev, prod
-    default = "dev"
-}
-variable "HospNumber" {
-    type = "string"
-    default = "0123"
-}
-variable "ResourceGroupName" {
-    type = "string"
-}
-variable "ResourceGroup" {
-    type = "string"
-}
-
-variable "location" {
-    type = "string"
-}
-variable "KeyVaultId" {
-  
-}
-
-
-
+variable "environment" {}
+variable "Number" {}
+variable "ResourceGroupName" {}
+variable "IteResourceGroup" {}
+variable "location" {}
+variable "iteKeyVaultId" {}
+variable "subnet_id" {}
+variable "tenant_id" {}
+variable "object_id" {}

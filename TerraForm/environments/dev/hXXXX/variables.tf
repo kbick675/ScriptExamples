@@ -1,34 +1,12 @@
-
-variable "environment" {
-    type = "string"
-}
-variable "HospNumber" {
-    type = "string"
-}
-variable "VmSize" {
-    type = "string"
-}
-variable "VmCount" {
-}
-variable "VmSku" {
-    type = "string"
-}
-variable "ResourceGroup" {
-    type = "string"
-}
-variable "location" {
-    type = "string"
-}
-variable "vNetSpace" {
-    type = "string"
-}
-variable "subnet" {
-    type = "string"
-}
-variable "KeyVaultName" {
-    type = "string"
-}
-variable "dsc_endpoint" {
-}
-variable "dsc_key" {
-}
+variable "environment" {}
+variable "HospNumber" {}
+variable "VmSize" {}
+variable "VmCount" {}
+variable "VmSku" {}
+variable "IteResourceGroup" {}
+variable "location" {}
+variable "vNetSpace" {}
+variable "subnet" {}
+variable "IteKeyVaultName" {}
+variable "dsc_endpoint" {}
+variable "dsc_key" {}

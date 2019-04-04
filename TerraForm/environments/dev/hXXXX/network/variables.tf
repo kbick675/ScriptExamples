@@ -1,24 +1,28 @@
 variable "environment" {
-    type = "string"
-    # dev, prod
-    default = "dev"
+  type = "string"
+
+  # dev, prod
+  default = "dev"
 }
+
 variable "HospNumber" {
-    type = "string"
-    default = "NNNN"
+  type    = "string"
+  default = "NNNN"
 }
+
 variable "ResourceGroupName" {
-    type = "string"
+  type = "string"
 }
+
 variable "vNetSpace" {
-    type = "string"
-    default = "10.0.0.0/16"
+  type    = "string"
+  default = "10.0.0.0/16"
 }
+
 variable "Subnet" {
-    type = "string"
+  type = "string"
 }
 
 variable "location" {
-    type = "string"
+  type = "string"
 }
-

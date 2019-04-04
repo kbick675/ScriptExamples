@@ -1,12 +1,4 @@
-variable "environment" {
-    type = "string"
-}
-variable "HospNumber" {
-    type = "string"
-}
-variable "ResourceGroupName" {
-    type = "string"
-}
-variable "location" {
-    type = "string"
-}
+variable "environment" {}
+variable "Number" {}
+variable "ResourceGroupName" {}
+variable "location" {}
