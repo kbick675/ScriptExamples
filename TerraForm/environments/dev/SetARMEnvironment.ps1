@@ -1,7 +1,6 @@
 Push-Location (Split-Path $script:MyInvocation.MyCommand.Path)
 
-if ([string]::IsNullOrEmpty($(Get-AzContext).Account))
-{
+if ([string]::IsNullOrEmpty($(Get-AzContext).Account)) {
     Connect-AzAccount
 }
 
@@ -19,9 +18,9 @@ $Secret = Get-AzKeyVaultSecret -VaultName $Vault.VaultName -Name $ARMInfo.spDisp
 $AzureAutomation = Get-AzAutomationAccount -ResourceGroupName $azResourceGroup.ResourceGroupName
 $AzureAutomationRegistration = $AzureAutomation | Get-AzAutomationRegistrationInfo
 
-$ENV:ARM_SUBSCRIPTION_ID=$azSubscription.Id
-$ENV:ARM_CLIENT_ID=$appId
-$ENV:ARM_CLIENT_SECRET=$Secret.SecretValueText
-$ENV:ARM_TENANT_ID=$azSubscription.TenantId
-$ENV:TF_VAR_dsc_endpoint=$AzureAutomationRegistration.Endpoint
-$ENV:TF_VAR_dsc_key=$AzureAutomationRegistration.PrimaryKey
+$ENV:ARM_SUBSCRIPTION_ID    = $azSubscription.Id
+$ENV:ARM_CLIENT_ID          = $appId
+$ENV:ARM_CLIENT_SECRET      = $Secret.SecretValueText
+$ENV:ARM_TENANT_ID          = $azSubscription.TenantId
+$ENV:TF_VAR_dsc_endpoint    = $AzureAutomationRegistration.Endpoint
+$ENV:TF_VAR_dsc_key         = $AzureAutomationRegistration.PrimaryKey
