@@ -7,3 +7,4 @@ variable "iteKeyVaultId" {}
 variable "subnet_id" {}
 variable "tenant_id" {}
 variable "object_id" {}
+variable "sqlAdminPw" {}
