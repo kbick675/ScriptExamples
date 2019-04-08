@@ -1,29 +1,3 @@
-provider "azurerm" {
-  version = "=1.23.0"
-}
-
-data "azurerm_resource_group" "HospResourceGroup" {
-  name = "${var.ResourceGroupName}"
-}
-
-resource "azurerm_virtual_network" "HospNetwork" {
-  name                = "${var.HospNumber}-vNet"   # Not entirely sure how I want to handle the vNet
-  address_space       = ["${var.vNetSpace}"]
-  location            = "${var.location}"
-  resource_group_name = "${var.ResourceGroupName}"
-
-  tags {
-    environment = "${var.environment}"
-  }
-}
-
-resource "azurerm_subnet" "HospSubnet" {
-  name                 = "${var.HospNumber}-Subnet"
-  resource_group_name  = "${var.ResourceGroupName}"
-  virtual_network_name = "${azurerm_virtual_network.HospNetwork.name}"
-  address_prefix       = "${var.Subnet}"
-}
-
 resource "azurerm_network_security_group" "nsg" {
   name                = "${var.HospNumber}-NSG"
   location            = "${var.location}"
@@ -34,8 +8,38 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+resource "azurerm_ddos_protection_plan" "ddosplan" {
+  name                = "${var.HospNumber}-ddosplan"
+  location            = "${var.location}"
+  resource_group_name = "${var.ResourceGroupName}"
+}
+
+resource "azurerm_virtual_network" "virtualNetwork" {
+  name                = "${var.HospNumber}-vNet"  
+  address_space       = ["${var.vNetSpace}"]
+  location            = "${var.location}"
+  resource_group_name = "${var.ResourceGroupName}"
+
+  ddos_protection_plan {
+    id     = "${azurerm_ddos_protection_plan.ddosplan.id}"
+    enable = true
+  }
+  
+  tags {
+    environment = "${var.environment}"
+  }
+}
+
+resource "azurerm_subnet" "Subnet" {
+  name                 = "${var.Number}-Subnet"
+  resource_group_name  = "${var.ResourceGroupName}"
+  virtual_network_name = "${azurerm_virtual_network.virtualNetwork.name}"
+  address_prefix       = "${var.Subnet}"
+}
+
+
 resource "azurerm_network_security_rule" "RDP" {
-  name                        = "${var.HospNumber}-RDP-in"
+  name                        = "${var.Number}-RDP-in"
   priority                    = 100
   direction                   = "Inbound"
   access                      = "Allow"
