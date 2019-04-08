@@ -2,11 +2,12 @@ resource "random_string" "vmLocalPassword" {
   length           = 21
   special          = true
   override_special = "!@*-"
+  count            = "${var.count}"
 }
 
 resource "azurerm_key_vault_secret" "VmKeyVaultSecret" {
   name         = "${var.vmPrefix}${var.Number}-${var.vmSuffix}${1 + count.index}localPassword"
-  value        = "${random_string.vmLocalPassword.result}"
+  value        = "${random_string.vmLocalPassword.*.result[count.index]}"
   key_vault_id = "${var.iteKeyVaultId}"
   count        = "${var.count}"
 
@@ -46,12 +47,12 @@ resource "azurerm_virtual_machine" "VM" {
   }
 
   /*
-      os_profile_secrets {
-          vault_certificates {
-              certificate_url             = "${var.certificate_url}"
-              certificate_store           = "My"
-          }
-      }*/
+  os_profile_secrets {
+      vault_certificates {
+          certificate_url             = "${var.certificate_url}"
+          certificate_store           = "My"
+      }
+  }*/
   os_profile_windows_config {
     provision_vm_agent = true
 
@@ -60,11 +61,11 @@ resource "azurerm_virtual_machine" "VM" {
     }
 
     /*
-        winrm {
-            protocol                    = "HTTPS"
-            certificate_url             = ""
-        }
-        */
+    winrm {
+        protocol                    = "HTTPS"
+        certificate_url             = ""
+    }
+    */
   }
 
   boot_diagnostics {
