@@ -1,13 +1,15 @@
-resource "random_string" "vmLocalPassword" {
+resource "random_string" "random_string" {
   length           = 21
   special          = true
   override_special = "!@*-"
+  count            = "${var.count}"
 }
 
-resource "azurerm_key_vault_secret" "VmKeyVaultSecret" {
+resource "azurerm_key_vault_secret" "KeyVaultSecret" {
   name         = "${var.secretName}"
-  value        = "${random_string.vmLocalPassword.result}"
+  value        = "${random_string.random_string.*.result[count.index]}"
   key_vault_id = "${var.keyVaultId}"
+  count        = "${var.count}"
 
   tags {
     environment = "${var.environment}"
