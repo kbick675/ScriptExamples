@@ -1,26 +1,10 @@
-resource "random_string" "sqlAdminPassword" {
-  length           = 21
-  special          = true
-  override_special = "!@*-"
-}
-
-resource "azurerm_key_vault_secret" "SqlKeyVaultSecret" {
-  name         = "${var.Number}-sqlAdminPassword"
-  value        = "${random_string.sqlAdminPassword.result}"
-  key_vault_id = "${var.iteKeyVaultId}"
-
-  tags {
-    environment = "${var.environment}"
-  }
-}
-
 resource "azurerm_sql_server" "azDbServer" {
   name                         = "${var.Number}sqlerver"
   resource_group_name          = "${var.ResourceGroupName}"
   location                     = "${var.location}"
   version                      = "12.0"
   administrator_login          = "${var.Number}SQLAdmin"
-  administrator_login_password = "${azurerm_key_vault_secret.SqlKeyVaultSecret.value}"
+  administrator_login_password = "${var.sqlAdminPw}"
 
   tags {
     environment = "${var.environment}"
