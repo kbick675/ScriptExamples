@@ -6,72 +6,68 @@ terraform {
   backend "azurerm" {}
 }
 
-data "azurerm_resource_group" "IteResourceGroup" {
-  name = "${var.IteResourceGroup}"
-}
-
-data "azurerm_client_config" "current" {}
-
-resource "azurerm_resource_group" "ResourceGroup" {
-  name     = "Rg-${var.Number}"
-  location = "${var.location}"
-
-  tags {
-    environment = "${var.environment}"
-  }
-}
-
-data "azurerm_key_vault" "ITEKeyVault" {
-  name                = "${var.IteKeyVaultName}"
-  resource_group_name = "${data.azurerm_resource_group.IteResourceGroup.name}"
+module "ResourceGroup" {
+  source      = "../Modules/resourceGroup"
+  HospNumber  = "${var.HospNumber}"
+  location    = "${var.location}"
+  environment = "${var.environment}"
 }
 
 module "network" {
-  source            = "./network"
+  source            = "../Modules/network"
   Number            = "${var.Number}"
   vNetSpace         = "${var.vNetSpace}"
   Subnet            = "${var.subnet}"
-  ResourceGroupName = "${azurerm_resource_group.ResourceGroup.name}"
-  location          = "${azurerm_resource_group.ResourceGroup.location}"
+  ResourceGroupName = "${module.ResourceGroup.resourceGroupName}"
+  location          = "${module.ResourceGroup.resourceGroupLocation}"
   environment       = "${var.environment}"
 }
 
 module "storage" {
-  source = "./storage"
+  source = "../Modules/storage"
 
   #createStorage                             = true
   Number            = "${var.Number}"
-  ResourceGroupName = "${azurerm_resource_group.ResourceGroup.name}"
-  location          = "${azurerm_resource_group.ResourceGroup.location}"
+  ResourceGroupName = "${module.ResourceGroup.resourceGroupName}"
+  location          = "${module.ResourceGroup.resourceGroupLocation}"
   environment       = "${var.environment}"
 }
 
+module "sqlKeyVault" {
+  source      = "../Modules/KeyVaultSecret"
+  environment = "${var.environment}"
+  secretName  = "${var.Number}SQLAdmin"
+  keyVaultId  = "${data.azurerm_key_vault.ITEKeyVault.id}"
+  count       = 1
+}
+
 module "sql" {
-  source            = "./sql"
+  source            = "../Modules/sql"
   Number            = "${var.Number}"
-  ResourceGroupName = "${azurerm_resource_group.ResourceGroup.name}"
   iteKeyVaultId     = "${data.azurerm_key_vault.ITEKeyVault.id}"
   IteResourceGroup  = "${data.azurerm_resource_group.IteResourceGroup.name}"
-  ResourceGroupName = "${azurerm_resource_group.ResourceGroup.name}"
-  location          = "${azurerm_resource_group.ResourceGroup.location}"
+  ResourceGroupName = "${module.ResourceGroup.resourceGroupName}"
+  location          = "${module.ResourceGroup.resourceGroupLocation}"
   environment       = "${var.environment}"
   subnet_id         = "${module.network.subnet_id}"
   tenant_id         = "${data.azurerm_client_config.current.tenant_id}"
   object_id         = "${data.azurerm_client_config.current.service_principal_object_id}"
+  sqlAdminPw        = "${module.sqlKeyVault.secretValue}"
 }
 
 module "compute" {
   # NS
-  source            = "./compute"
+  source            = "../Modules/compute"
   environment       = "${var.environment}"
   Number            = "${var.Number}"
+  vmPrefix          = "RDS"
   vmSuffix          = "NS"
   VmSize            = "${var.VmSize}"
   VmSku             = "${var.VmSku}"
   count             = "${var.VmCount}"
   IteResourceGroup  = "${data.azurerm_resource_group.IteResourceGroup.name}"
-  ResourceGroupName = "${azurerm_resource_group.ResourceGroup.name}"
-  location          = "${azurerm_resource_group.ResourceGroup.location}"
+  ResourceGroupName = "${module.ResourceGroup.resourceGroupName}"
+  location          = "${module.ResourceGroup.resourceGroupLocation}"
   enableBootDiag    = true
   Storage           = "${module.storage.primary_blob_endpoint}"
   iteKeyVaultId     = "${data.azurerm_key_vault.ITEKeyVault.id}"
