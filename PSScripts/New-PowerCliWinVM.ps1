@@ -4,39 +4,54 @@ Creates a new VM in vCenter via the PowerCli cmdlets.
 
 .OUTPUTS
 Results are output to screen.
-
-.PARAMETER VMName
+.PARAMETER Name
 Specifies the name of the account to create.
-.PARAMETER VMTemplate
+.PARAMETER Template
 Creates the VM from the specified VM template. 
-.PARAMETER VMCluster
-Creates the VM in the specified cluster.
-.PARAMETER VMNetwork
+.PARAMETER Cluster
+Creates the VM in the specified cluster. 
+Do no specify if specifying ResourcePool. 
+.PARAMETER ResourcePool
+Creates the VM in the specified resource pool. 
+Do not specify if specifying Cluster. 
+.PARAMETER Network
 Sets the VM network adapter to the specified VM network.
-.PARAMETER VMDatastore
-Creates the VM in the specified datastore.
-.PARAMETER VMOwner
-Sets the Spx.AutomationX.Owner attribute.
-.PARAMETER VMBusinessOwner
-Sets the Spx.AutomationX.BuesinessOwner attribute.
-.PARAMETER VMDescription
-Sets the Spx.Description attribute.
+.PARAMETER Datastore
+Creates the VM in the specified datastore. Used if targeting a specific volume or host. Do not just in conjunction with DatastoreCluster.
+.PARAMETER DatastoreCluster
+Creates the VM in the specified datastore cluster. Used if targeting a datastore cluster only. Do not use in conjunction with Datastore.
+.PARAMETER Datacenter
+The datacenter you'll be creating the VM in.
 .PARAMETER VIServer
 Determines which vCenter server the commands run against. 
-.PARAMETER VMDiskSize
+.PARAMETER PrimaryDiskSize
 Sets primary VM disk to 60, 80 or 100 GB. 
+.PARAMETER AdditionalDiskSize
+Flags for an additional disk to be created and sets the size of the disk.
+.PARAMETER AdditionalDiskThick
+Switch to set the additional disk to be thick provisioned.
 .PARAMETER VMvCPU
 Sets the VM to the specified number of CPUs.
 .PARAMETER VMMemGB
 Sets the VM to the specified amount of memory in GB.
-.PARAMETER GuestOS
-Specifies the guest OS as 2012 or 2012.
 .PARAMETER TargetOU
 Places the VM account in one of the specified Organizational Units (OU).
 .PARAMETER AutoUpdateGroup
 Puts the VM AD Account in one of the specified security groups that determine auto update scheduling. 
+.PARAMETER Notes
+Notes for the VM. Also goes into AD computer account description. 
+.PARAMETER NoDomain
+For when you don't want to join a domain. 
+.PARAMETER IPAddress
+IP address for static addressing
+.PARAMETER SubnetMask
+Subnet mask for static addressing
+.PARAMETER Gateway
+Gateway IP for static addressing
+.PARAMETER DNSServers
+DNS Servers for static addressing
 .EXAMPLE
-New-PowerCliVM.ps1 -VMName testkb347 -VMTemplate tpl-2016std -VMCluster Access2 -VMNetwork 'Access 2004' -VMDatastore pure1 -VMOwner kbickmore -VMBusinessOwner "ITSystems" -VMDescription "Test System"
+
 .NOTES
 Written by: Kevin Bickmore
 #>
@@ -44,46 +59,42 @@ Written by: Kevin Bickmore
 param(
     [Parameter(Mandatory=$true,Position=0)]
     [ValidateNotNull()]
-    [string]$VMName,
+    [string]$Name,
     [Parameter(Mandatory=$true)]
     [ValidateNotNull()]
-    [ValidateSet("tpl-2012r2std","tpl-2016core","tpl-2016std","se-tpl-2016std","se-tpl-2016core")]
-    [string]$VMTemplate,
+    [ValidateSet("WinCore2016-tpl","WinCore2019-tpl","WinGui2016-tpl","WinGui2019-tpl","Centos-tpl")]
+    [string]$Template,
+    [ValidateSet("vCenterCluster1","vCenterCluster2")]
+    [string]$Cluster,
+    [string]$ResourcePool,
+    [string]$Folder,
+    [string]$Network,
+    [string]$DataStore,
     [ValidateNotNull()]
-    [ValidateSet("Access","Access2")]
-    [string]$VMCluster = 'Access2',
+    [ValidateSet("Storage Cluster 1","Storage Cluster 2")]
+    [string]$DataStoreCluster,
     [ValidateNotNull()]
-    [ValidateSet("Access 2000","Access 2004","Access 2028","Access 2032")]
-    [string]$VMNetwork = 'Access 2028',
-    [Parameter(Mandatory=$true)]
-    [ValidateNotNull()]
-    [ValidateSet("filer3 win1","filer4 win2","pure1")]
-    [string]$VMDatastore,
-    [ValidateNotNull()]
-    [ValidateSet("Datacenter1","Datacenter2")]
-    [string]$VMDataCenter = 'Datacenter1',
-    [Parameter(Mandatory=$true)]
-    [ValidateNotNull()]
-    [string]$VMOwner,
-    [Parameter(Mandatory=$true)]
-    [ValidateNotNull()]
-    [string]$VMBusinessOwner,
-    [Parameter(Mandatory=$true)]
-    [ValidateNotNull()]
-    [string]$VMDescription,
-    #Use whatever your vCenter hostname is
-    [string]$VIServer = "vcenter",
-    [ValidateSet(60,80,100)]
-    [decimal]$VMDiskSize,
-    [ValidateSet(2,4,6,8)]
+    [ValidateSet("DataCenter1","DataCenter2")]
+    [string]$DataCenter = 'DataCenter1',
+    [ValidateSet("vcenter1","vcenter2")]
+    [string]$VIServer = "vcenter1",
+    [ValidateSet(80,100,120)]
+    [decimal]$PrimaryDiskSize,
+    [decimal]$AdditionalDiskSize,
+    [switch]$AdditionalDiskDoNotStoreWithVM,
+    [switch]$AdditionalDiskThick,
+    [ValidateSet(1,2,4,6,8,12,16)]
     [int]$VMvCPU = 2,
-    [ValidateSet(2,4,6,8,12,16)]
+    [ValidateSet(2,4,6,8,12,16,32)]
     [int]$VMMemGB = 4,
-    [Parameter(Mandatory=$true)]
-    [ValidateNotNull()]
     [string]$TargetOU,
-    #If you have groups that manage auto patching
-    [string]$AutoUpdateGroup
+    [string]$AutoUpdateGroup,
+    [string]$Notes,
+    [switch]$NoDomain,
+    [string]$IPAddress,
+    [string]$SubnetMask,
+    [string]$Gateway,
+    [string[]]$DNSServers
     )
 
 
@@ -93,13 +104,14 @@ $SendingAddress = "NewPowerCliVM@domain.com"
 if (!(Get-Module -ListAvailable -Name VMware.PowerCLI))
 {
     Write-Output "PowerCLI is not installed. Please install from Powershell Gallery: Install-Module VMware.PowerCLI"
-    break
+    Write-Output "Stopping..."
+    Exit
 }
 if ($PSVersionTable.PSEdition -eq "Core")
 {
     "This version of Powershell does not support the AD Cmdlets. Any functionality that relies on them will not work."
 }
-if (($PSVersionTable.PSEdition -ne "Core") -or (!($PSVersionTable.PSEdition)))
+if ($PSVersionTable.PSEdition -ne "Core")
 {
     try 
     {
@@ -112,7 +124,7 @@ if (($PSVersionTable.PSEdition -ne "Core") -or (!($PSVersionTable.PSEdition)))
     if ($ComputerExists)
     {
         Write-Output "Computer with name $($VMName) exists. Stopping."
-        break
+        Exit
     } 
     elseif (!($ComputerExists))
     {
@@ -133,7 +145,7 @@ if (($PSVersionTable.PSEdition -ne "Core") -or (!($PSVersionTable.PSEdition)))
             Write-Output "Attempting move to $($TargetOU)."
             try 
             {
-                Move-ADObject -Identity $NewComputer -TargetPath $TargetOU
+                Move-ADObject -Identity $NewComputer -TargetPath $TargetOU -Verbose
                 Write-Output "Move successful."
             }
             catch
@@ -158,51 +170,158 @@ if (($PSVersionTable.PSEdition -ne "Core") -or (!($PSVersionTable.PSEdition)))
     }
 }
 
-if (!($VIServer))
+# Check if we're connected to a VIServer
+function ConnectVCenterServer 
 {
-    $VIServer = "ht-vcenter"
+    param (
+        [string] $vcenter_server = "*" 
+    )
+	Connect-VIServer -Server $vcenter_server
 }
+function CheckVIServerConnection
+{
+    param (
+        [string] $vcenter_server
+    ) 
+	$connected = $FALSE
+    if ($global:DefaultVIServers.Count -gt 0) 
+    {
+        $ServersFiltered = $global:DefaultVIServers.Where{$_.Name -eq "$($vcenter_server)"}
+        if ($ServersFiltered.IsConnected -eq $true)
+        {
+			Write-Output "Already connected to $($vcenter_server); continuing"
+			$connected = $TRUE
+        }
+        elseif ($ServersFiltered.IsConnected -eq $false)
+        {
+            Write-Output "Attempting to connect to $($vcenter_server)"
+		    $connected = if (ConnectVCenterServer -vcenter_server $vcenter_server) { $TRUE } else { $FALSE }
+        }
+        return $connected
+    }
+    elseif (!($global:DefaultVIServers))
+    {
+        Write-Output "Attempting to connect to $($vcenter_server)"
+        $connected = if (ConnectVCenterServer -vcenter_server $vcenter_server) { $TRUE } else { $FALSE }
+        return $connected
+    }
+}
+if (!(CheckVIServerConnection -vcenter_server $VIServer)) 
+{
+	Write-Output "Unable to connect to $($VIServer)"
+	Exit
+}
+### End vCenter Connectivity Check
 
-Connect-VIServer -Server $VIServer
-
-$VMExists = Get-VM -Name $VMName -ErrorAction SilentlyContinue
+### Check if VM Exists
+$VMExists = Get-VM -Name $Name -ErrorAction SilentlyContinue
 if ($VMExists)
 {
-    Write-Output "VM with name $($VMName) already exists."
-    break
+    Write-Output "VM with name $($Name) already exists. Stopping..."
+    Exit
 }
 else 
 {
-    Write-Output "Creating $($VMName)."    
+    Write-Output "Creating $($Name)."    
 }
 
-[int]$VMCpuPerSocket = $VMvCPU/2
+### Set Cpus per socket
+if ($VMvCPU -gt 1)
+{
+    [int]$VMCpuPerSocket = $VMvCPU/2
+}
+else 
+{
+    [int]$VMCpuPerSocket = 1
+}
 
-$VMResourcePool = Get-Cluster -Name $VMCluster
-$DataStore = Get-Datastore -Name $VMDatastore -Datacenter $VMDataCenter
+### Get specified Datacenter information
+if ($DataCenter)
+{
+    $DataCenter = Get-Datacenter -Name $DataCenter -Server $VIServer
+}
+
+### Get Resource Pool/Cluster information
+if ($ResourcePool)
+{
+    $ResourcePool = Get-ResourcePool -Name $ResourcePool -Location $DataCenter -Server $VIServer
+}
+elseif ($Cluster)
+{
+    $ResourcePool = Get-Cluster -Name $Cluster -Location $DataCenter -Server $VIServer
+}
+
+### Get Datastore/Datastore Cluster information
+if (($DataStore) -and (!($DataStoreCluster)))
+{
+    $DataStore = Get-Datastore -Name $DataStore -Location $DataCenter -Server $VIServer
+}
+elseif (($DataStoreCluster) -and (!($DataStore)))
+{
+    $DataStore = Get-DatastoreCluster -Name $DataStoreCluster -Location $DataCenter -Server $VIServer
+}
+elseif (($DataStore) -and ($DataStoreCluster))
+{
+    Write-Error "Don't specify both DataStore and DataStoreCluster"
+    Exit
+}
+
+### Get folder information
+if ($Folder)
+{
+    try 
+    {
+        $FolderId = Get-Folder -Name $Folder -Location $DataCenter -Server $VIServer
+    }
+    catch
+    {
+        Write-Output "Specified folder doesn't seem to exist in $($Datacenter.Name)"
+        $Folder = Get-Folder -Name vm -Location $DataCenter -Server $VIServer
+        $FolderId = $Folder.Id
+        Write-Output "VM will be placed in generic VM folder for $($Datacenter.Name)"
+    }
+}
+elseif (!($Folder))
+{
+    $Folder = Get-Folder -Name vm -Location $DataCenter -Server $VIServer
+    $FolderId = $Folder.Id
+}
 
 if ($VMTemplate)
 {
-    if ($VMTemplate -eq "tpl-2012r2std")
+    if (($Template -eq 'phCentos-tpl') -or ($Template -eq 'laCentos-tpl'))
     {
-        $GuestOS = '2012'
-        $Template = Get-Template -Name $VMTemplate
-        $VMOSCustomization = Get-OSCustomizationSpec -Name "AutomationX_Windows2012R2STD" #You'll probably want to specify your own OS Customization Specification
+        $TemplateName = (Get-Template -Name $Template -Server $VIServer).Name
+        $OSCustomization = Get-OSCustomizationSpec -Name "CentOS" -Server $VIServer
     }
-    if (($VMTemplate -eq "tpl-2016core") -or ($VMTemplate -eq "tpl-2016std") -or ($VMTemplate -eq 'se-tpl-2016std') -or ($VMTemplate -eq 'se-tpl-2016core'))
+    else 
     {
-        $GuestOS = '2016'
-        $Template = Get-Template -Name $VMTemplate
-        $VMOSCustomization = Get-OSCustomizationSpec -Name "AutomationX_Windows2016STD" #You'll probably want to specify your own OS Customization Specification
+        $TemplateName = (Get-Template -Name $Template -Server $VIServer).Name
+        if (!($NoDomain))
+        {
+            if ($IPAddress)
+            {
+                $OSCustomization = Get-OSCustomizationSpec -Name "Windows_Server_Domain_Join_StaticIP" -Server $VIServer
+                $OSCustomization | Get-OSCustomizationNicMapping | Set-OSCustomizationNicMapping -IpMode UseStaticIP -IpAddress $IPAddress -SubnetMask $SubnetMask -DefaultGateway $Gateway -Dns $DNSServers -Server $VIServer
+            }
+            elseif (!($IPAddress))
+            {
+                $OSCustomization = Get-OSCustomizationSpec -Name "Windows_Server_Domain_Join" -Server $VIServer
+            }
+        }
+        elseif ($NoDomain)
+        {
+            $OSCustomization = Get-OSCustomizationSpec -Name "Windows_Server_NoDomain" -Server $VIServer
+        }
     }
 
     $NewVMSplat = @{
-        Name = $VMName
-        Location = $VMFolder
-        Datastore = $VMDatastore
-        Template = $Template
-        OSCustomizationSpec = $VMOSCustomization
-        ResourcePool = $VMResourcePool
+        Name = $Name
+        Location = $FolderId
+        Datastore = $DataStore
+        Template = $TemplateName
+        OSCustomizationSpec = $OSCustomization
+        ResourcePool = $ResourcePool
         Server = $VIServer
     }
     New-VM @NewVMSplat
@@ -210,23 +329,63 @@ if ($VMTemplate)
     $NewVM = Get-VM -Name $VMName
     if ($NewVM)
     {
-        Set-VM -VM $NewVM -NumCpu $VMvCPU -MemoryGB $VMMemGB -CoresPerSocket $VMCpuPerSocket -Verbose -Confirm:$false
-        $Nic = Get-NetworkAdapter -VM $NewVM
-        Set-NetworkAdapter -NetworkAdapter $Nic -NetworkName $VMNetwork -Verbose -Confirm:$false 
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.AutomationX.CreationDate -Value (Get-Date)
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.AutomationX.BusinessOwner -Value $VMBusinessOwner
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.AutomationX.Owner -Value $VMOwner
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.Description -Value $VMDescription        
-        Start-VM -VM $NewVM -Verbose
-        Set-ADcomputer -Identity $VMName -Description $VMDescription
-        if ($VMDiskSize)
-        {
-            $Disk = Get-HardDisk -VM $NewVM
-            Set-HardDisk -HardDisk $Disk -CapacityGB $VMDiskSize
+        $SetVMSplat = @{
+            VM = $NewVM
+            NumCpu = $VMvCPU
+            MemoryGB = $VMMemGB
+            CoresperSocket = $VMCpuPerSocket
+            Verbose = $true
+            Confirm = $false
+            Server = $VIServer
         }
+        Set-VM @SetVMSplat
+        $Nic = Get-NetworkAdapter -VM $NewVM -Server $VIServer
+        if ($Network)
+        {
+            Set-NetworkAdapter -NetworkAdapter $Nic -NetworkName $Network -StartConnected $true -Verbose -Confirm:$false -Server $VIServer
+        }
+        if ($PrimaryDiskSize)
+        {
+            $Disk = Get-HardDisk -VM $NewVM -Server $VIServer
+            Set-HardDisk -HardDisk $Disk -CapacityGB $PrimaryDiskSize -Confirm:$false -Server $VIServer
+        }
+        if ($AdditionalDiskSize)
+        {
+            if ($AdditionalDiskDoNotStoreWithVM)
+            {
+                $Disk = $NewVM | Get-HardDisk -Server $VIServer
+                $antiAffinityRule = New-Object 'VMware.VimAutomation.ViCore.Types.V1.DatastoreManagement.SdrsVMDiskAntiAffinityRule' $Disk
+
+                if ($AdditionalDiskThick)
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -Datastore $DataStoreCluster -AdvancedOption $antiAffinityRule -Server $VIServer
+                }
+                else 
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -StorageFormat Thin -Datastore $DataStoreCluster -AdvancedOption $antiAffinityRule -Server $VIServer
+                }
+            }
+            elseif (!($AdditionalDiskDoNotStoreWithVM))
+            {
+                if ($AdditionalDiskThick)
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -Server $VIServer
+                }
+                else 
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -StorageFormat Thin -Server $VIServer
+                }
+            }
+        }
+        if ($Notes)
+        {
+            Set-VM -VM $NewVM -Notes $Notes -Confirm:$false -Server $VIServer
+        }
+        Start-VM -VM $NewVM -Verbose -Server $VIServer
     } 
 }
-elseif (!($VMTemplate))
+### Create blank VM
+elseif (!($Template))
 {
     if ($GuestOS -eq "2012")
     {
@@ -237,44 +396,155 @@ elseif (!($VMTemplate))
         $GuestOS = "windows10Server64Guest"
     }
     $NewVMSplat = @{
-        Name = $VMName
-        Location = $VMFolder
-        Datastore = $VMDatastore
-        ResourcePool = $VMResourcePool
+        Name = $Name
+        Location = $FolderName
+        Datastore = $DataStore
+        ResourcePool = $ResourcePool
         Server = $VIServer
-        NetworkName = $VMNetwork
+        NetworkName = $Network
         DiskStorageFormat = 'Thin'
-        DiskGB = $VMDiskSize
+        DiskGB = $PrimaryDiskSize
     }
     New-VM @NewVMSplat
     Start-Sleep -Seconds 10
-    $NewVM = Get-VM -Name $VMName
+    $NewVM = Get-VM -Name $Name
     if ($NewVM)
     {
-        Set-VM -VM $NewVM -NumCpu $VMvCPU -MemoryGB $VMMemGB -CoresPerSocket $VMCpuPerSocket -Confirm:$false
-        $Nic = Get-NetworkAdapter -VM $NewVM
-        Set-NetworkAdapter -NetworkAdapter $Nic -Type Vmxnet3 -Confirm:$false 
-        $Scsi = Get-ScsiController -VM $NewVM 
-        Set-ScsiController -ScsiController $Scsi -Type VirtualLsiLogicSAS -BusSharingMode NoSharing -Confirm:$false
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.AutomationX.CreationDate -Value (Get-Date)
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.AutomationX.BusinessOwner -Value $VMBusinessOwner
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.AutomationX.Owner -Value $VMOwner
-        Get-VM -Name $NewVM | Set-Annotation -CustomAttribute Spx.Description -Value $VMDescription        
-        Start-VM -VM $NewVM -Verbose
-        Set-ADcomputer -Identity $VMName -Description $VMDescription
-        if ($VMDiskSize)
+        $SetVMSplat = @{
+            VM = $NewVM
+            NumCpu = $VMvCPU
+            MemoryGB = $VMMemGB
+            CoresperSocket = $VMCpuPerSocket
+            Verbose = $true
+            Confirm = $false
+            Server = $VIServer
+        }
+        #Set-VM -VM $NewVM -NumCpu $VMvCPU -MemoryGB $VMMemGB -CoresPerSocket $VMCpuPerSocket -Verbose -Confirm:$false -Server $VIServer
+        Set-VM @SetVMSplat
+        $Nic = Get-NetworkAdapter -VM $NewVM -Server $VIServer
+        if ($Network)
         {
-            $Disk = Get-HardDisk -VM $NewVM
-            Set-HardDisk -HardDisk $Disk -CapacityGB $VMDiskSize -Confirm:$false
+            Set-NetworkAdapter -NetworkAdapter $Nic -NetworkName $Network -Verbose -Confirm:$false -Type Vmxnet3 -Server $VIServer
+        }
+        if ($PrimaryDiskSize)
+        {
+            $Disk = Get-HardDisk -VM $NewVM -Server $VIServer
+            Set-HardDisk -HardDisk $Disk -CapacityGB $PrimaryDiskSize -Confirm:$false -Server $VIServer
+        }
+        if ($AdditionalDiskSize)
+        {
+            if ($AdditionalDiskDoNotStoreWithVM)
+            {
+                $Disk = $NewVM | Get-HardDisk
+                $antiAffinityRule = New-Object 'VMware.VimAutomation.ViCore.Types.V1.DatastoreManagement.SdrsVMDiskAntiAffinityRule' $Disk
+
+                if ($AdditionalDiskThick)
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -Datastore $DataStoreCluster -AdvancedOption $antiAffinityRule -Server $VIServer
+                }
+                else 
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -StorageFormat Thin -Datastore $DataStoreCluster -AdvancedOption $antiAffinityRule -Server $VIServer
+                }
+            }
+            elseif (!($AdditionalDiskDoNotStoreWithVM))
+            {
+                if ($AdditionalDiskThick)
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -Server $VIServer
+                }
+                else 
+                {
+                    New-HardDisk -VM $NewVM -CapacityGB $AdditionalDiskSize -StorageFormat Thin -Server $VIServer
+                }
+            }
+        }
+        if ($Notes)
+        {
+            Set-VM -VM $NewVM -Notes $Notes -Confirm:$false -Server $VIServer
+            Set-ADcomputer -Identity $Name -Description $Notes -Server $VIServer
+        }
+        Start-VM -VM $NewVM -Verbose -Server $VIServer
+    }
+}
+
+### This job will run for Windows systems. realm domain joins can place them in their particular OU themselves. 
+if (($Template -notlike "*CentOS*") -or ($PSVersionTable.PSEdition -ne "Core"))
+{
+    $ADJob = {
+        $count = 0
+        do {
+            Start-Sleep -Seconds 30
+            try 
+            {
+                Clear-DnsClientCache
+                $Online = Test-WSMan -ComputerName $Using:Name
+            }
+            catch
+            {   
+            }
+            $count++
+        } while (!($Online) -and ($count -le 30))
+        if ($Online)
+        {
+            $ADAccount = Get-ADComputer -Identity $Using:Name
+            if (!($Using:TargetOU))
+            {
+                Write-Output "$($Using:Name) is in: $($Domain.ComputersContainer)"
+            }
+            elseif ($Using:TargetOU)
+            {
+                if ($ADAccount.DistinguishedName -like "*$($Domain.ComputersContainer)")
+                {
+                    Write-Output "Attempting move to $($Using:TargetOU)."
+                    try 
+                    {
+                        Move-ADObject -Identity $ADAccount -TargetPath $Using:TargetOU
+                        Write-Output "Move successful."
+                    }
+                    catch
+                    {
+                        Write-Output "Move failed."
+                        Write-Output "$($Error[0])"
+                    }
+                }
+            }
+            if ($Using:Notes)
+            {
+                Set-ADcomputer -Identity $ADAccount.SamAccountName -Description $Using:Notes -Confirm:$false
+            }
+            if ($Using:AutoUpdateGroup)
+            {
+                try 
+                {
+                    Add-ADGroupMember -Identity $Using:AutoUpdateGroup -Members $ADAccount.SamAccountName
+                    Write-Output "Added $($ADAccount.SamAccountName) to $($Using:AutoUpdateGroup)."
+                }
+                catch 
+                {
+                    Write-Output "Unable to add $($ADAccount.SamAccountName) to $($Using:AutoUpdateGroup)."
+                    Write-Output "$($Error[0])"
+                }
+            }
         }
     }
+    Start-Job -Name 'ADJob' -ScriptBlock $ADJob
 }
 
 $RunningUser = $env:USERNAME
 $Admin = Get-ADUser -Identity $RunningUser -Properties EmployeeID
-$EmployeeID = $Admin.EmployeeID
-$User = Get-ADUser -filter {EmployeeNumber -eq $EmployeeID} -Properties EmployeeNumber,mail -ErrorAction SilentlyContinue
-$mail = $User.mail
+## This assumes you're mapping your admin account that is running this to the regular/primary user account of the employee
+## via the employeeID and employeeNumber attributes.
+if ($Admin.EmployeeID)
+{
+    $User = Get-ADUser -filter {EmployeeNumber -eq $Admin.EmployeeID} -Properties EmployeeNumber,mail -ErrorAction SilentlyContinue
+    $mail = $User.mail
+}
+##
+elseif (!($Admin.EmployeeID))
+{
+    $mail = Read-Host -Prompt "Email address to send VM online notification to"
+}
 $NotificationJob = {
     $count = 0
     do {
@@ -282,18 +552,18 @@ $NotificationJob = {
         try 
         {
             Clear-DnsClientCache
-            $Online = Test-WSMan -ComputerName $Using:VMName
+            $Online = Test-WSMan -ComputerName $Using:Name
         }
         catch
         {   
         }
         $count++
     } while (!($Online) -and ($count -le 30))
-    $EmailBody = "$($Using:VMName) is online."
+    $EmailBody = "$($Using:Name) is online."
     $User = "anonymous"
     $to = "$($Using:mail)"
     $PWord = ConvertTo-SecureString -String "anonymous" -AsPlainText -Force
     $Creds = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $user, $pword
-    Send-MailMessage -To $to -From $Using:SendingAddress -Subject "$($Using:VMName) is online." -Body $EmailBody -SmtpServer $Using:MailServerSMTPAddress -Credential $creds         
+    Send-MailMessage -To $to -From $Using:SendingAddress -Subject "$($Using:Name) is online." -Body $EmailBody -SmtpServer $Using:MailServerSMTPAddress -Credential $creds         
 }
 Start-Job -Name 'VMNotification' -ScriptBlock $NotificationJob
