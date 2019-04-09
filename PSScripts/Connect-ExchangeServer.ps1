@@ -21,8 +21,7 @@ function getServerName
 {
     try 
     {
-        $ADDomain = $ADDC.DefaultPartition
-        $config = Get-Childitem "AD:\CN=Microsoft Exchange,CN=Services,CN=Configuration,$($ADDomain)"
+        $config = Get-Childitem "AD:\CN=Microsoft Exchange,CN=Services,CN=Configuration,$($Domain.DistinguishedName)"
         $OrgName = $config | where {$_.ObjectClass -eq 'msExchOrganizationContainer'}
         $ServerNames = (Get-ChildItem "AD:\CN=Servers,CN=Exchange Administrative Group (FYDIBOHF23SPDLT),CN=Administrative Groups,$($OrgName.DistinguishedName)").Name    
     }
