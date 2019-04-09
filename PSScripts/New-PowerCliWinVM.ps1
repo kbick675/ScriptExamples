@@ -51,7 +51,28 @@ Gateway IP for static addressing
 .PARAMETER DNSServers
 DNS Servers for static addressing
 .EXAMPLE
+$Requestor = "Requestor Name"
+$Department = "Corporate Engineering"
+$Environment = "Production"
+$Engineer = "Engineer Name"
+$Type = "ExampleVM"
+$Notes = "Department - $($Department)`nRequestor - $($Requestor)`nEnvironment - $($Environment)`nIT Engineer - $($Engineer)`nNotes - $Type"
 
+
+$splat = @{
+    Name = "examplevm1"
+    Template = "WinGui2019-tpl"
+    Cluster = "vCenterCluster1"
+    Network = "VLAN 170 - Engineering Automation - PROD"
+    DataStoreCluster = "Storage Cluster 1"
+    VIServer = "phvccl01"
+    VMvCPU = 2
+    VMMemGB = 4
+    Notes = $Notes
+    Folder = "Systems_Engineering"
+}
+
+.\New-PowerCliVM.ps1 @splat
 .NOTES
 Written by: Kevin Bickmore
 #>
