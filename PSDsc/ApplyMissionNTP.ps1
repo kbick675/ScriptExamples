@@ -11,7 +11,7 @@ Configuration NTPMission
             Ensure = 'Present'
             Key = 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\Parameters'
             ValueName = "NtpServer"
-            ValueData = "ntp.spacex.corp,0x01"
+            ValueData = "ntp.domain.corp,0x01"
             ValueType = "String"
             Force = $true
         }
