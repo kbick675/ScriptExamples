@@ -1,7 +1,6 @@
 <#
 .SYNOPSIS
 Creates a new VM in vCenter via the PowerCli cmdlets. 
-
 .OUTPUTS
 Results are output to screen.
 .PARAMETER Name
@@ -18,8 +17,6 @@ Do not specify if specifying Cluster.
 Sets the VM network adapter to the specified VM network.
 .PARAMETER Datastore
 Creates the VM in the specified datastore. Used if targeting a specific volume or host. Do not just in conjunction with DatastoreCluster.
-.PARAMETER DatastoreCluster
-Creates the VM in the specified datastore cluster. Used if targeting a datastore cluster only. Do not use in conjunction with Datastore.
 .PARAMETER Datacenter
 The datacenter you'll be creating the VM in.
 .PARAMETER VIServer
@@ -64,8 +61,8 @@ $splat = @{
     Template = "WinGui2019-tpl"
     Cluster = "vCenterCluster1"
     Network = "VLAN 170 - Engineering Automation - PROD"
-    DataStoreCluster = "Storage Cluster 1"
-    VIServer = "phvccl01"
+    DataStore = "StorageCluster1"
+    VIServer = "vCenter1"
     VMvCPU = 2
     VMMemGB = 4
     Notes = $Notes
@@ -90,10 +87,7 @@ param(
     [string]$ResourcePool,
     [string]$Folder,
     [string]$Network,
-    [string]$DataStore,
-    [ValidateNotNull()]
-    [ValidateSet("Storage Cluster 1","Storage Cluster 2")]
-    [string]$DataStoreCluster,
+    [string]$DataStore = "StorageCluster1",
     [ValidateNotNull()]
     [ValidateSet("DataCenter1","DataCenter2")]
     [string]$DataCenter = 'DataCenter1',
@@ -115,7 +109,9 @@ param(
     [string]$IPAddress,
     [string]$SubnetMask,
     [string]$Gateway,
-    [string[]]$DNSServers
+    [string[]]$DNSServers,
+    [ValidateSet("Windows","CentOS7","RHEL7")]
+    [string]$GuestOS = "Windows"
     )
 
 
@@ -132,6 +128,8 @@ if ($PSVersionTable.PSEdition -eq "Core")
 {
     "This version of Powershell does not support the AD Cmdlets. Any functionality that relies on them will not work."
 }
+
+### AD Computer Account Creation
 if ($PSVersionTable.PSEdition -ne "Core")
 {
     try 
@@ -191,7 +189,7 @@ if ($PSVersionTable.PSEdition -ne "Core")
     }
 }
 
-# Check if we're connected to a VIServer
+### Check if we're connected to a VIServer
 function ConnectVCenterServer 
 {
     param (
@@ -246,7 +244,7 @@ else
     Write-Output "Creating $($Name)."    
 }
 
-### Set Cpus per socket
+### Set Cpus per socket assuming a 2 socket system
 if ($VMvCPU -gt 1)
 {
     [int]$VMCpuPerSocket = $VMvCPU/2
@@ -273,18 +271,50 @@ elseif ($Cluster)
 }
 
 ### Get Datastore/Datastore Cluster information
-if (($DataStore) -and (!($DataStoreCluster)))
+
+if ($DatastoreName)
 {
-    $DataStore = Get-Datastore -Name $DataStore -Location $DataCenter -Server $VIServer
-}
-elseif (($DataStoreCluster) -and (!($DataStore)))
-{
-    $DataStore = Get-DatastoreCluster -Name $DataStoreCluster -Location $DataCenter -Server $VIServer
-}
-elseif (($DataStore) -and ($DataStoreCluster))
-{
-    Write-Error "Don't specify both DataStore and DataStoreCluster"
-    Exit
+    try 
+    {
+        $Datastore = Get-DatastoreCluster -Name $DataStoreName -Location $DataCenter -Server $VIServer -ErrorAction SilentlyContinue
+    }
+    catch {}
+    try 
+    {
+        $Datastore = Get-Datastore -Name $DataStoreName -Location $DataCenter -Server $VIServer -ErrorAction SilentlyContinue
+    }
+    catch {}
+    switch -wildcard ($Datastore.Id) 
+    {
+        "StoragePod*" 
+        {
+            if ($DataStore.FreeSpaceGB -lt '1000.00')
+            {
+                Write-Warning -Message "$($DataStore.Name) has less than 1TB of free space."
+                Write-Warning -Message "$($DataStore.Name) has $($DataStore.FreeSpaceGB) available."
+            }
+            elseif ($DataStore.FreeSpaceGB -lt '2000.00')
+            {
+                Write-Warning -Message "$($DataStore.Name) has less than 2TB of free space."
+                Write-Warning -Message "$($DataStore.Name) has $($DataStore.FreeSpaceGB) available."
+            }  
+        }
+        "DataStore*" 
+        {
+            if ($DataStore.FreeSpaceGB -lt '500.00')
+            {
+                Write-Warning -Message "$($DataStore.Name) has less than 500GB of free space."
+                Write-Warning -Message "$($DataStore.Name) has $($DataStore.FreeSpaceGB) available."
+            }
+            elseif ($DataStore.FreeSpaceGB -lt '1000.00')
+            {
+                Write-Warning -Message "$($DataStore.Name) has less than 1TB of free space"
+                Write-Warning -Message "$($DataStore.Name) has $($DataStore.FreeSpaceGB) available."
+            }
+        }
+        
+        Default {}
+    }
 }
 
 ### Get folder information
@@ -408,13 +438,11 @@ if ($VMTemplate)
 ### Create blank VM
 elseif (!($Template))
 {
-    if ($GuestOS -eq "2012")
-    {
-        $GuestOS = "windows8Server64Guest"
-    }
-    if ($GuestOS -eq "2016")
-    {
-        $GuestOS = "windows10Server64Guest"
+    switch ($GuestOS) {
+        "Windows" { $GuestOS = "windows10Server64Guest" }
+        "CentOS7" { $GuestOS = "centos764Guest" }
+        "RHEL7" { $GuestOS = "rhel7_64Guest" }
+        Default {}
     }
     $NewVMSplat = @{
         Name = $Name
@@ -425,23 +453,15 @@ elseif (!($Template))
         NetworkName = $Network
         DiskStorageFormat = 'Thin'
         DiskGB = $PrimaryDiskSize
+        NumCpu = $VMvCPU
+        MemoryGB = $VMMemGB
+        CoresperSocket = $VMCpuPerSocket
     }
     New-VM @NewVMSplat
     Start-Sleep -Seconds 10
     $NewVM = Get-VM -Name $Name
     if ($NewVM)
     {
-        $SetVMSplat = @{
-            VM = $NewVM
-            NumCpu = $VMvCPU
-            MemoryGB = $VMMemGB
-            CoresperSocket = $VMCpuPerSocket
-            Verbose = $true
-            Confirm = $false
-            Server = $VIServer
-        }
-        #Set-VM -VM $NewVM -NumCpu $VMvCPU -MemoryGB $VMMemGB -CoresPerSocket $VMCpuPerSocket -Verbose -Confirm:$false -Server $VIServer
-        Set-VM @SetVMSplat
         $Nic = Get-NetworkAdapter -VM $NewVM -Server $VIServer
         if ($Network)
         {
