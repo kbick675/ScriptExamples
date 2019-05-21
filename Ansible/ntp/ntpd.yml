@@ -29,7 +29,7 @@
         group: root
         mode: 0644
       notify:
-        - force ntp update
+        - perform ntp sync
       tags: ntp
       
     - name: Ensure NTP is started
