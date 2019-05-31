@@ -1,4 +1,12 @@
-variable "environment" {}
-variable "secretName" {}
-variable "keyVaultId" {}
-variable "count" {}
+variable "environment" {
+}
+
+variable "secretName" {
+}
+
+variable "keyVaultId" {
+}
+
+variable "count" {
+}
+

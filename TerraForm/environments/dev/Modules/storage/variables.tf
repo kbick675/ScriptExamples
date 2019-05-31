@@ -1,4 +1,12 @@
-variable "environment" {}
-variable "Number" {}
-variable "ResourceGroupName" {}
-variable "location" {}
+variable "environment" {
+}
+
+variable "Number" {
+}
+
+variable "ResourceGroupName" {
+}
+
+variable "location" {
+}
+

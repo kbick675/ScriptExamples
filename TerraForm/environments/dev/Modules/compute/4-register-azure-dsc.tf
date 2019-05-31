@@ -1,12 +1,12 @@
 resource "azurerm_virtual_machine_extension" "dsc" {
   name                 = "DevOpsDSC"
-  location             = "${var.location}"
-  resource_group_name  = "${var.ResourceGroupName}"
-  virtual_machine_name = "${element(azurerm_virtual_machine.HospVM.*.name, count.index)}"
+  location             = var.location
+  resource_group_name  = var.ResourceGroupName
+  virtual_machine_name = element(azurerm_virtual_machine.HospVM.*.name, count.index)
   publisher            = "Microsoft.Powershell"
   type                 = "DSC"
   type_handler_version = "2.9.1.0"
-  depends_on           = ["azurerm_virtual_machine.HospVM"]
+  depends_on           = [azurerm_virtual_machine.HospVM]
 
   settings = <<SETTINGS
       {
@@ -31,7 +31,9 @@ resource "azurerm_virtual_machine_extension" "dsc" {
               "AllowModuleOverwrite": false
           }
       }
-    SETTINGS
+    
+SETTINGS
+
 
   protected_settings = <<PROTECTED_SETTINGS
       {
@@ -39,5 +41,8 @@ resource "azurerm_virtual_machine_extension" "dsc" {
           "registrationKeyPrivate" : "${var.dsc_key}"
         }
       }
-    PROTECTED_SETTINGS
+    
+PROTECTED_SETTINGS
+
 }
+

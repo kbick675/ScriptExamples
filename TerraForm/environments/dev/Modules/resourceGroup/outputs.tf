@@ -1,11 +1,12 @@
 output "resourceGroupId" {
-  value = "${azurerm_resource_group.ResourceGroup.id}"
+  value = azurerm_resource_group.ResourceGroup.id
 }
 
 output "resourceGroupName" {
-  value = "${azurerm_resource_group.ResourceGroup.name}"
+  value = azurerm_resource_group.ResourceGroup.name
 }
 
 output "resourceGroupLocation" {
-  value = "${azurerm_resource_group.ResourceGroup.location}"
+  value = azurerm_resource_group.ResourceGroup.location
 }
+

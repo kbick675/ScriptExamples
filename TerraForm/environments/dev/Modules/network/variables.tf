@@ -1,11 +1,18 @@
-variable "environment" {}
+variable "environment" {
+}
 
-variable "Number" {}
+variable "Number" {
+}
 
-variable "ResourceGroupName" {}
+variable "ResourceGroupName" {
+}
 
-variable "vNetSpace" {}
+variable "vNetSpace" {
+}
 
-variable "Subnet" {}
+variable "Subnet" {
+}
 
-variable "location" {}
+variable "location" {
+}
+

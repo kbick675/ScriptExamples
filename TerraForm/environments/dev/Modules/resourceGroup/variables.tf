@@ -1,3 +1,9 @@
-variable "environment" {}
-variable "Number" {}
-variable "location" {}
+variable "environment" {
+}
+
+variable "Number" {
+}
+
+variable "location" {
+}
+
