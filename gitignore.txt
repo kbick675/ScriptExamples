@@ -22,3 +22,9 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Ignore JSON lock files
+lock.json
+
+# Ignore terraform provider files
+terraform-provider-*
