@@ -1,0 +1,6 @@
+{
+    "resourceGroup": "resourceGroupName",
+    "keyVaultName": "SecretVaultDev",
+    "subscriptionName": "NameOfSubscription",
+    "spDisplayName": "TerraformDev"
+}

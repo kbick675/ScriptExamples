@@ -1,0 +1,12 @@
+﻿ios:
+  vars:
+    ansible_network_os: ios
+    ansible_connection: network_cli
+  hosts:
+    H1111-SW1.vcaantech.com:
+      ansible_host: 10.57.228.254
+    H1111-SW2.vcaantech.com:
+      ansible_host: 10.57.228.253
+    H1111-SW3.vcaantech.com:
+      ansible_host: 10.57.228.252
+

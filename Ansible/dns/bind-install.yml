@@ -1,0 +1,45 @@
+---
+
+- hosts: dnsservers
+  become: true
+  vars:
+    bind_zone_dir: /var/local/named-zones
+    bind_zone_file_mode: '0660'
+    bind_allow_query:
+      - any
+    bind_listen_ipv4:
+      - any
+    bind_listen_ipv6:
+      - any
+    bind_acls:
+      - name: acl1
+        match_list:
+          - 192.168.1.0/24
+    bind_forwarders:
+      - '1.1.1.1'
+      - '8.8.8.8'
+    bind_recursion: true
+    bind_query_log: 'data/query.log'
+    bind_check_names: 'master ignore'
+    bind_zone_master_server_ip: 192.168.1.32
+    bind_zone_minimum_ttl: "2D"
+    bind_zone_ttl: "2W"
+    bind_zone_time_to_refresh: "2D"
+    bind_zone_time_to_retry: "2H"
+    bind_zone_time_to_expire: "2W"
+    bind_zone_domains:
+      - name: 'home.local'
+        networks:
+          - '192.168.1'
+        name_servers:
+          - networksvc
+        hostmaster_email: admin
+        hosts:
+          - name: networksvc
+            ip: 192.168.1.32
+          - name: kubem1
+            ip: 192.168.1.31
+          - name: kuben1
+            ip: 192.168.1.29
+  roles:
+    - bertvv.bind

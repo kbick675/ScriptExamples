@@ -1,0 +1,55 @@
+---
+
+- name: Install and configure ntpd
+  hosts: ntpservers
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: set timezone
+      shell: timedatectl set-timezone America/Los_Angeles
+
+    - name: Install NTP
+      yum: 
+        name: ntp 
+        state: installed
+      tags: ntp
+
+    - name: Disable and Stop Chronyd
+      systemd: 
+        name: chronyd 
+        state: stopped 
+        enabled: no
+      tags: ntp
+
+    - name: copy NTP configuration
+      template: 
+        src: ntp.conf 
+        dest: /etc/ntp.conf
+        owner: root
+        group: root
+        mode: 0644
+      notify:
+        - perform ntp sync
+      tags: ntp
+      
+    - name: Ensure NTP is started
+      systemd: 
+        name: ntpd 
+        state: started 
+        enabled: yes
+      tags: ntp
+
+    - name: Open inbound NTP connections
+      firewalld:
+        service: ntp
+        permanent: yes
+        state: enabled
+  
+  handlers:
+  - name: restart ntp
+    systemd: 
+      name: ntpd 
+      state: restarted
+
+  - name: perform ntp sync
+    shell: systemctl stop ntpd; sudo ntpdate -s time.nist.gov; systemctl start ntpd
