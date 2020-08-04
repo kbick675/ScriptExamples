@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+### requires pandas lxml htm5lib BeautifulSoup4
+
 import pandas as pd
 from random import randrange
 import argparse
