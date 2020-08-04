@@ -21,12 +21,6 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--numlen', default='1', type=int, help='length of numbers in between words')
     args = parser.parse_args()
 
-    url = "https://untroubled.org/pwgen/ppgen.cgi?wordcount={0}&minlen={1}&maxlen={2}&randcaps={3}&numlen={4}&submit=Generate+Passphrase".format(
-        str(args.wordcount), 
-        str(args.minlen), 
-        str(args.maxlen), 
-        str(args.randcaps), 
-        str(args.numlen)
-    )
+    url = f"https://untroubled.org/pwgen/ppgen.cgi?wordcount={args.wordcount}&minlen={args.minlen}&maxlen={args.maxlen}&randcaps={args.randcaps}&numlen={args.numlen}&submit=Generate+Passphrase"
 
     print (getPassphrase(url))
