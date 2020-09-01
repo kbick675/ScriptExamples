@@ -1,0 +1,10 @@
+ad_login_test_user: 'linuxtestuser'
+ad_domain: 'domain.com'
+ad_sudoers_group: 'ADSudoers'
+ad_ou: 'OU=Servers,DC=domain,DC=com'
+bind_user: ansibledomainjoin
+bind_password: !vault |
+          encrypted_password
+ansible_user: root
+ansible_password: !vault |
+          encrypted_password

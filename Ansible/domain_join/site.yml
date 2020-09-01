@@ -1,0 +1,107 @@
+---
+- name: Install and configure AD auth
+  hosts: all
+  become: yes
+  become_method: sudo
+  
+  tasks:
+    - name: Install epel-release
+      yum:
+        name: epel-release
+        state: installed
+      register: yum_Installed
+    - name: Install ad_auth tools
+      yum:
+        name: "{{ packages }}"
+        state: installed
+      vars:
+        packages:
+        - realmd
+        - samba
+        - samba-common
+        - samba-common-tools
+        - oddjob
+        - oddjob-mkhomedir
+        - sssd
+        - adcli
+        - krb5-workstation
+        - openldap-clients
+        - policycoreutils-python
+        - python-pip
+      when: yum_Installed is succeeded
+      notify:
+         - restart_realmd
+
+    - name: Check if machine is bound
+      shell: /bin/bash -c "getent passwd {{ ad_login_test_user }}@{{ ad_domain }} | grep {{ ad_login_test_user }}"
+      register: realmd_bound
+      changed_when: false
+      ignore_errors: true
+
+    - name: Install pexpect using pip
+      pip:
+        name: pexpect
+
+    - name: Discover realm
+      shell: /bin/bash -c "/usr/sbin/realm discover {{ ad_domain }}"
+      register: discover_realm
+      when: (realmd_bound is failed)
+
+    - name: Join to AD
+      expect: 
+        command: /bin/bash -c "/usr/sbin/realm join -v --user={{ bind_user }} --os-name={{ ansible_distribution }} --os-version={{ ansible_distribution_major_version }} --computer-ou={{ ad_ou }}" {{ ad_domain }}
+        responses:
+          Password for *: "{{ bind_password }}"
+      no_log: false
+      register: join_ad
+      when: (realmd_bound is failed) and (discover_realm is succeeded)
+
+    - name: Add sudoers group to sudoers
+      lineinfile:
+        path: /etc/sudoers
+        regexp: '^# User_Alias '
+        insertafter: '^# User_Alias '
+        line: "%{{ ad_domain }}\\\\{{ ad_sudoers_group }} ALL=(ALL) ALL"
+        validate: '/usr/sbin/visudo -cf %s'
+      tags: sudoers
+      when: (join_ad is succeeded) or (realmd_bound is succeeded)
+
+    - name: Setup SSH for kerberos
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: '^#KerberosAuthentication no', line: 'KerberosAuthentication yes' }
+        - { regexp: '^#GSSAPIAuthentication no', line: 'GSSAPIAuthentication yes' }
+        - { regexp: '^#GSSAPICleanupCredentials no', line: 'GSSAPICleanupCredentials yes' }
+      notify:
+        - restart_sshd
+      tags: sshd
+
+    - name: Configure sssd for homedirs
+      lineinfile:
+        path: /etc/sssd/sssd.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: '^use_fully_qualified_names = True$', line: 'use_fully_qualified_names = False' }
+        - { regexp: '^fallback_homedir = /home/%u@%d$', line: 'fallback_homedir = /home/%u' }
+      when: (join_ad is succeeded) or (realmd_bound is succeeded)
+
+  handlers:
+    - name: restart_sshd
+      systemd: 
+        name: sshd 
+        state: restarted
+      tags: sshd
+    - name: restart_realmd
+      systemd:
+        name: realmd
+        state: restarted
+      tags: realmd
+    - name: restart_sssd
+      systemd:
+        name: sssd
+        state: restarted
+      tags: sssd
