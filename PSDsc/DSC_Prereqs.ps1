@@ -113,16 +113,16 @@ Configuration Server_Prereqs
         $InetPubWWWRoot = "C:\Inetpub\WWWRoot"
         $ServiceSiteRoot = "C:\Inetpub\ServiceRoot"
         $APISiteRoot = "C:\Inetpub\APIRoot"
-        $WoofwareWebAPIRoot = "C:\Inetpub\APIRoot\WoofwareWebAPI"
-        $WoofwareServiceRoot = "C:\Inetpub\ServiceRoot\WoofwareService"
+        $WebAPIRoot = "C:\Inetpub\APIRoot\WebAPI"
+        $ServiceRoot = "C:\Inetpub\ServiceRoot\Service"
         $IISDirs = @(
             $InetPubRoot,
             $InetPubLog,
             $InetPubWWWRoot,
             $ServiceSiteRoot,
             $APISiteRoot,
-            $WoofwareWebAPIRoot,
-            $WoofwareServiceRoot,
+            $WebAPIRoot,
+            $ServiceRoot,
             "C:\Inetpub\temp",
             "C:\Inetpub\temp\apppools",
             "C:\scripts\",
