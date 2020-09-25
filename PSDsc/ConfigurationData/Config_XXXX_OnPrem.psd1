@@ -5,7 +5,7 @@ Settings for nodenames that are unique will apply to only that system. Change, c
     CommonConfig references the CommontItems configuration settings and is used in DSC.  
 
 CommonItems:
-Settings that should apply to all VMs for the hospital or application you're deploying for.
+Settings that should apply to all VMs for the Server or application you're deploying for.
 This is supposed to reduce the number of edits necessary. 
 #>
 @{
@@ -56,7 +56,7 @@ This is supposed to reduce the number of edits necessary.
             TargetOU                    = "OU=Computers,DC=domain,DC=com"
             ### VM Information for use with deployment script
             Requestor                   = "Kevin Bickmore"
-            Department                  = "Hospital Engineering"
+            Department                  = "Server Engineering"
             Environment                 = "Production"
             Engineer                    = "Kevin Bickmore"
             VIServer                    = "vcenter.domain.com"
